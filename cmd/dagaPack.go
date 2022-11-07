@@ -1,7 +1,6 @@
-package main
+package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -20,7 +19,7 @@ type CodeAsset struct {
 	Code         string
 }
 
-func createAsset(fileName string) (asset CodeAsset) {
+func CreateAsset(fileName string) (asset CodeAsset) {
 	content, err := os.ReadFile(fileName)
 
 	if err != nil {
@@ -45,6 +44,7 @@ func createAsset(fileName string) (asset CodeAsset) {
 	id := ID
 	ID += 1
 
+	babel.Init(2)
 	code, _ := babel.Transform(strings.NewReader(ast.JS()), map[string]interface{}{
 		"presets": []string{
 			"env",
@@ -64,9 +64,4 @@ func createAsset(fileName string) (asset CodeAsset) {
 		FileName:     fileName,
 		Code:         buf.String(),
 	}
-}
-
-func main() {
-	asset := createAsset("../example/src/entry.js")
-	fmt.Println(asset.Id, asset.Code)
 }
