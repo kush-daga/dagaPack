@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	babel "github.com/jvatic/goja-babel"
@@ -64,4 +67,77 @@ func CreateAsset(fileName string) (asset CodeAsset) {
 		FileName:     fileName,
 		Code:         buf.String(),
 	}
+}
+
+type CodeAssetWithMapping struct {
+	asset   CodeAsset
+	mapping map[string]int
+}
+
+type DepGraph []CodeAssetWithMapping
+
+func CreateGraph(entryFile string) (depGraph DepGraph) {
+	mainAsset := CreateAsset(entryFile)
+	mainAssetMapping := map[string]int{}
+
+	mainAssetWithMapping := CodeAssetWithMapping{
+		mainAsset,
+		mainAssetMapping,
+	}
+	depGraph = []CodeAssetWithMapping{mainAssetWithMapping}
+
+	for i := 0; i < len(depGraph); i++ {
+		assetInQueue := depGraph[i]
+		dirName := filepath.Dir(assetInQueue.asset.FileName)
+
+		for _, relPath := range assetInQueue.asset.Dependencies {
+
+			absPath, err := filepath.Abs(filepath.Join(dirName, relPath))
+			fmt.Println("ABS PATH:", absPath)
+
+			if err != nil {
+				panic(err)
+			}
+
+			childAsset := CreateAsset(absPath)
+			assetInQueue.mapping[relPath] = childAsset.Id
+
+			var tempMapping = map[string]int{}
+			childAssetWithMapping := CodeAssetWithMapping{childAsset, tempMapping}
+			depGraph = append(depGraph, childAssetWithMapping)
+		}
+	}
+
+	// j3, _ := json.Marshal(queue[2].asset)
+	fmt.Println(depGraph[0])
+	fmt.Println(depGraph[1])
+	fmt.Println(depGraph[2])
+
+	// // fmt.Println(asset, mapping)
+	// depGraph = DepGraph{
+	// 	{asset, mapping},
+	// }
+
+	// var m map[string]any
+	// ja, _ := json.Marshal(asset)
+	// json.Unmarshal(ja, &m)
+	// m["mapping"] = mapping
+
+	// js, _ := json.Marshal(m)
+
+	// fmt.Println(string(js))
+
+	return depGraph
+}
+
+func convertGraphElToMap(a CodeAsset, m map[string]int) (res map[string]any, resString string) {
+	res = map[string]any{}
+	ja, _ := json.Marshal(a)
+
+	json.Unmarshal(ja, &res)
+	res["mapping"] = m
+
+	js, _ := json.Marshal(res)
+
+	return res, string(js)
 }
